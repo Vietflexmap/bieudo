@@ -1,6 +1,6 @@
 import { METRICS } from './config.js';
 import { loadProvinceData, nationalSummary, formatMetric, formatNumber, sortedBy, getMetricStats, normalizeText } from './data.js';
-import { StatisticsMap } from './map.js';
+import { StatisticsMap } from './map.js?v=20260917-3';
 import { DashboardCharts } from './charts.js';
 
 const $ = id => document.getElementById(id);
