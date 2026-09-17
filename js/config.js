@@ -21,13 +21,20 @@ export const TEDP_STYLE = {
       minzoom: 0,
       maxzoom: 24,
       paint: {
-        'raster-opacity': 1,
-        'raster-saturation': -0.12,
-        'raster-contrast': 0.04
+        'raster-opacity': 0.96,
+        'raster-saturation': -0.22,
+        'raster-contrast': -0.03,
+        'raster-brightness-min': 0.05,
+        'raster-brightness-max': 1
       }
     }
   ]
 };
+
+export const ANHMAP_SOURCES = [
+  'https://vietflexmap.github.io/anhmap/index.html',
+  'https://cdn.jsdelivr.net/gh/Vietflexmap/anhmap@main/index.html'
+];
 
 export const DATA_SOURCES = [
   {
