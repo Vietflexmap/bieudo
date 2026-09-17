@@ -5,7 +5,7 @@ import { DashboardCharts } from './charts.js';
 
 const $ = id => document.getElementById(id);
 const state = {
-  provinces: [], metric: 'population', selected: null, rankingAll: false,
+  provinces: [], metric: 'population', selected: null, hovered: null, rankingAll: false,
   sort: { key: 'population', direction: 'desc' }, source: null
 };
 let map;
@@ -27,7 +27,7 @@ function setActiveMetric(metric) {
   state.metric = metric;
   document.querySelectorAll('[data-metric]').forEach(button => button.classList.toggle('active', button.dataset.metric === metric));
   $('rankingTitle').textContent = `${state.rankingAll ? '34 tỉnh/thành' : 'Top 12'} theo ${METRICS[metric].label.toLowerCase()}`;
-  renderLegend(); renderTable();
+  renderLegend(); renderTable(); renderFocusCard();
   charts?.setData(state.provinces, metric, state.rankingAll);
   map?.setMetric(metric);
 }
@@ -48,20 +48,27 @@ function renderLegend() {
   $('legendMin').textContent = formatMetric(stats.min, state.metric, true);
   $('legendMax').textContent = formatMetric(stats.max, state.metric, true);
 }
-function renderSelected() {
-  const card = $('selectedMapCard'); const p = state.selected;
+function renderFocusCard() {
+  const card = $('selectedMapCard');
+  const p = state.hovered || state.selected;
   if (!p) { card.hidden = true; return; }
   card.hidden = false;
-  $('selectedType').textContent = p.type; $('selectedName').textContent = p.name;
+  card.classList.toggle('hover-preview', Boolean(state.hovered));
+  $('selectedType').textContent = state.hovered ? `${p.type} · đang rê chuột` : `${p.type} · đã chọn`;
+  $('selectedName').textContent = p.name;
   $('selectedPopulation').textContent = `${formatMetric(p.population, 'population', true)} người`;
   $('selectedArea').textContent = `${formatMetric(p.area, 'area')} km²`;
   $('selectedDensity').textContent = `${formatMetric(p.density, 'density')} người/km²`;
 }
 function selectProvince(province, options = {}) {
   if (!province) return;
-  state.selected = province; renderSelected(); renderTable();
+  state.selected = province; state.hovered = null; renderFocusCard(); renderTable();
   map?.select(province, options.zoom !== false);
   if (options.toast) showToast(`Đã chọn ${province.name}`);
+}
+function hoverProvince(province) {
+  state.hovered = province || null;
+  renderFocusCard();
 }
 function renderTable() {
   const { key, direction } = state.sort;
@@ -121,8 +128,12 @@ function bindUi() {
 
 async function boot() {
   bindUi();
-  try { map = new StatisticsMap('map', { onSelect: p => selectProvince(p, { zoom: false }) }); }
-  catch (error) { console.error(error); showToast('MapLibre chưa tải được; bảng thống kê vẫn có thể hoạt động.'); }
+  try {
+    map = new StatisticsMap('map', {
+      onSelect: p => selectProvince(p, { zoom: false }),
+      onHover: p => hoverProvince(p)
+    });
+  } catch (error) { console.error(error); showToast('MapLibre chưa tải được; bảng thống kê vẫn có thể hoạt động.'); }
   try { charts = new DashboardCharts($('rankingChart'), $('scatterChart'), p => selectProvince(p)); }
   catch (error) {
     console.error(error);
@@ -135,8 +146,8 @@ async function boot() {
     renderSummary(); populateSearch(); renderLegend(); renderTable();
     charts?.setData(state.provinces, state.metric, false);
     await map?.setData(state.provinces, state.metric); map?.reset();
-    setStatus('Dữ liệu đã sẵn sàng', 'ok');
-    $('sourceDetail').textContent = `Đang dùng: ${loaded.source.label}. Mật độ được giữ theo nguồn; nếu thiếu sẽ tính dân số / diện tích.`;
+    setStatus('Dữ liệu & ranh giới sẵn sàng', 'ok');
+    $('sourceDetail').textContent = `Thống kê: ${loaded.source.label}. Ranh giới tương tác: Vietflexmap/anhmap. Mật độ giữ theo nguồn; nếu thiếu sẽ tính dân số / diện tích.`;
   } catch (error) {
     console.error(error); setStatus('Không tải được dữ liệu', 'error');
     $('sourceDetail').textContent = error?.message || String(error);
