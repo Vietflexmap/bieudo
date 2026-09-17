@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="description" content="WebGIS thống kê 34 tỉnh/thành Việt Nam sau sáp nhập — dân số, diện tích và mật độ dân số trên nền Vietflex TEDP." />
+  <meta name="theme-color" content="#08111f" />
+  <title>Vietflex Statistics · 34 tỉnh/thành sau sáp nhập</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://tedp.vn" crossorigin />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.8.0/dist/maplibre-gl.css" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img">
+            <path d="M24 5 40 14v20L24 43 8 34V14Z" fill="none" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M15 29.5 22 18l5 7 6-10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="15" cy="29.5" r="2.6" fill="currentColor"/><circle cx="22" cy="18" r="2.6" fill="currentColor"/><circle cx="27" cy="25" r="2.6" fill="currentColor"/><circle cx="33" cy="15" r="2.6" fill="currentColor"/>
+          </svg>
+        </div>
+        <div><div class="eyebrow">VIETFLEX · WEBGIS STATISTICS</div><h1>Việt Nam sau sáp nhập</h1></div>
+      </div>
+      <div class="header-meta">
+        <span class="status-pill" id="dataStatus"><span class="status-dot loading"></span>Đang nạp dữ liệu</span>
+        <span class="source-pill">34 tỉnh/thành · 3.321 đơn vị cấp xã</span>
+      </div>
+    </header>
+
+    <main class="dashboard">
+      <section class="map-panel" aria-label="Bản đồ thống kê">
+        <div id="map" class="map"></div>
+        <div class="map-overlay map-toolbar glass-card">
+          <label class="search-box" for="provinceSearch">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input id="provinceSearch" list="provinceOptions" placeholder="Tìm tỉnh/thành…" autocomplete="off" />
+            <datalist id="provinceOptions"></datalist>
+          </label>
+          <button class="icon-button" id="resetMap" type="button" title="Xem toàn Việt Nam" aria-label="Xem toàn Việt Nam">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <div class="map-overlay metric-switch glass-card" id="metricSwitch" role="group" aria-label="Chỉ tiêu bản đồ">
+          <button type="button" data-metric="population" class="active">Dân số</button>
+          <button type="button" data-metric="area">Diện tích</button>
+          <button type="button" data-metric="density">Mật độ</button>
+        </div>
+        <div class="map-overlay legend glass-card" id="legend">
+          <div class="legend-head"><span id="legendTitle">Dân số</span><small>quy mô điểm</small></div>
+          <div class="legend-scale"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="legend-range"><span id="legendMin">—</span><span id="legendMax">—</span></div>
+        </div>
+        <div class="map-overlay basemap-badge glass-card">
+          <span class="live-dot"></span><div><b>Vietflex TEDP</b><small>Nền raster trực tuyến</small></div>
+        </div>
+        <div class="map-overlay selected-map-card glass-card" id="selectedMapCard" hidden>
+          <div class="selected-title"><span id="selectedType">Tỉnh/thành</span><b id="selectedName">—</b></div>
+          <div class="selected-grid">
+            <div><small>Dân số</small><strong id="selectedPopulation">—</strong></div>
+            <div><small>Diện tích</small><strong id="selectedArea">—</strong></div>
+            <div><small>Mật độ</small><strong id="selectedDensity">—</strong></div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="analytics-panel">
+        <section class="summary-section">
+          <div class="section-heading">
+            <div><span class="eyebrow">TỔNG QUAN QUỐC GIA</span><h2>Dashboard thống kê</h2></div>
+            <span class="date-chip">Dữ liệu sau sáp nhập</span>
+          </div>
+          <div class="kpi-grid">
+            <article class="kpi-card primary"><div class="kpi-icon">34</div><div><span>Tỉnh / thành</span><strong id="kpiProvinces">34</strong><small id="kpiProvinceTypes">—</small></div></article>
+            <article class="kpi-card"><span>Tổng dân số</span><strong id="kpiPopulation">—</strong><small>người</small></article>
+            <article class="kpi-card"><span>Tổng diện tích</span><strong id="kpiArea">—</strong><small>km²</small></article>
+            <article class="kpi-card"><span>Mật độ chung</span><strong id="kpiDensity">—</strong><small>người/km²</small></article>
+          </div>
+        </section>
+
+        <section class="chart-card">
+          <div class="card-heading"><div><span class="eyebrow">XẾP HẠNG</span><h3 id="rankingTitle">Top 12 theo dân số</h3></div><button class="text-button" id="toggleRanking" type="button">Xem 34 tỉnh</button></div>
+          <div id="rankingChart" class="chart chart-ranking" aria-label="Biểu đồ xếp hạng"></div>
+        </section>
+        <section class="chart-card">
+          <div class="card-heading"><div><span class="eyebrow">TƯƠNG QUAN</span><h3>Dân số × diện tích</h3></div><span class="mini-note">Kích thước = mật độ</span></div>
+          <div id="scatterChart" class="chart chart-scatter" aria-label="Biểu đồ tương quan"></div>
+        </section>
+        <section class="table-card">
+          <div class="card-heading table-heading"><div><span class="eyebrow">DỮ LIỆU 34 TỈNH/THÀNH</span><h3>Bảng thống kê</h3></div><span class="record-count" id="recordCount">0 bản ghi</span></div>
+          <div class="table-scroll">
+            <table><thead><tr><th>#</th><th>Tỉnh/thành</th><th><button data-sort="population" type="button">Dân số ↕</button></th><th><button data-sort="area" type="button">Diện tích ↕</button></th><th><button data-sort="density" type="button">Mật độ ↕</button></th></tr></thead><tbody id="provinceTable"></tbody></table>
+          </div>
+        </section>
+        <footer class="data-footer"><p><b>Nguồn thống kê:</b> Vietflexmap/sapnhap · <b>Nền bản đồ:</b> Vietflex TEDP.</p><p id="sourceDetail">Đang xác định nguồn dữ liệu…</p></footer>
+      </aside>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@6.8.0/dist/maplibre-gl.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
