@@ -29,7 +29,8 @@ function setActiveMetric(metric) {
   $('rankingTitle').textContent = `${state.rankingAll ? '34 tỉnh/thành' : 'Top 12'} theo ${METRICS[metric].label.toLowerCase()}`;
   renderLegend(); renderTable(); renderFocusCard();
   charts?.setData(state.provinces, metric, state.rankingAll);
-  map?.setMetric(metric);
+  const pending = map?.setMetric(metric);
+  if (pending?.catch) pending.catch(error => console.warn('Không cập nhật được chỉ tiêu trên bản đồ:', error));
 }
 
 function renderSummary() {
@@ -98,7 +99,6 @@ function bindUi() {
   $('resetMap').addEventListener('click', () => map?.reset());
   $('provinceSearch').addEventListener('change', event => selectBySearch(event.target.value));
   $('provinceSearch').addEventListener('keydown', event => { if (event.key === 'Enter') selectBySearch(event.currentTarget.value); });
-
   $('toggleRanking').addEventListener('click', () => {
     state.rankingAll = !state.rankingAll;
     $('toggleRanking').textContent = state.rankingAll ? 'Thu gọn Top 12' : 'Xem 34 tỉnh';
@@ -106,7 +106,6 @@ function bindUi() {
     $('rankingChart').classList.toggle('expanded', state.rankingAll);
     charts?.setShowAll(state.rankingAll); setTimeout(() => charts?.resize(), 80);
   });
-
   document.querySelector('.table-card').addEventListener('click', event => {
     const sort = event.target.closest('[data-sort]');
     if (sort) {
@@ -133,25 +132,52 @@ async function boot() {
       onSelect: p => selectProvince(p, { zoom: false }),
       onHover: p => hoverProvince(p)
     });
-  } catch (error) { console.error(error); showToast('MapLibre chưa tải được; bảng thống kê vẫn có thể hoạt động.'); }
+  } catch (error) {
+    console.error('Map constructor failed:', error);
+    map = null;
+  }
   try { charts = new DashboardCharts($('rankingChart'), $('scatterChart'), p => selectProvince(p)); }
   catch (error) {
     console.error(error);
     document.querySelectorAll('.chart').forEach(el => { el.innerHTML = '<div class="chart-fallback">Không tải được thư viện biểu đồ.</div>'; });
   }
 
+  let loaded;
   try {
-    const loaded = await loadProvinceData();
-    state.provinces = loaded.provinces; state.source = loaded.source;
-    renderSummary(); populateSearch(); renderLegend(); renderTable();
-    charts?.setData(state.provinces, state.metric, false);
-    await map?.setData(state.provinces, state.metric); map?.reset();
-    setStatus('Dữ liệu & ranh giới sẵn sàng', 'ok');
-    $('sourceDetail').textContent = `Thống kê: ${loaded.source.label}. Ranh giới tương tác: Vietflexmap/anhmap. Mật độ giữ theo nguồn; nếu thiếu sẽ tính dân số / diện tích.`;
+    loaded = await loadProvinceData();
   } catch (error) {
-    console.error(error); setStatus('Không tải được dữ liệu', 'error');
+    console.error(error);
+    setStatus('Không tải được dữ liệu thống kê', 'error');
     $('sourceDetail').textContent = error?.message || String(error);
     showToast('Không tải được admin.json từ Vietflexmap/sapnhap.', 5200);
+    return;
+  }
+
+  state.provinces = loaded.provinces; state.source = loaded.source;
+  renderSummary(); populateSearch(); renderLegend(); renderTable();
+  charts?.setData(state.provinces, state.metric, false);
+  $('sourceDetail').textContent = `Thống kê: ${loaded.source.label}. Ranh giới: Vietflexmap/anhmap. Nền: Vietflex TEDP.`;
+
+  if (!map) {
+    setStatus('Dữ liệu sẵn sàng · bản đồ chưa khởi tạo', 'error');
+    showToast('Không khởi tạo được bản đồ. Dashboard thống kê vẫn hoạt động.', 5200);
+    return;
+  }
+
+  try {
+    const health = await map.setData(state.provinces, state.metric);
+    map.reset();
+    if (health?.boundary) {
+      setStatus(`TEDP + AnhMap sẵn sàng · ${health.renderer}`, 'ok');
+    } else {
+      setStatus('TEDP sẵn sàng · ranh giới AnhMap chưa nạp', 'loading');
+    }
+    if (health?.tileErrors > 0) console.warn(`TEDP phát sinh ${health.tileErrors} lỗi tile lúc khởi tạo.`);
+  } catch (error) {
+    console.error('Map initialization failed:', error);
+    setStatus('Dữ liệu sẵn sàng · bản đồ đang lỗi', 'error');
+    $('sourceDetail').textContent = `Dữ liệu thống kê đã tải. Lỗi bản đồ: ${error?.message || error}`;
+    showToast('Bản đồ không khởi tạo được. Hãy Ctrl+F5; dữ liệu thống kê vẫn an toàn.', 6200);
   }
 }
 boot();
